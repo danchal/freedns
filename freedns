@@ -1,0 +1,90 @@
+#!/bin/bash
+
+#example return messages from FreeDns
+#   "Updated example.com to 11.11.11.111 in 0.193 seconds"
+#   "No IP change detected for example.com with IP 11.11.11.111, skipping update"
+#   "Error 404 : Page not found"
+#   "Couldn't find any matching DNS records via randomkey method!"
+
+FREEDNS_CONF="/etc/freedns/freedns.conf"
+FREEDNS_URL="http://sync.afraid.org/u/"
+
+RESOLVER_URL="myip.opendns.com"
+RESOLVER_SERVER="resolver1.opendns.com"
+
+DNS_UPDATED='Updated'
+DNS_UNCHANGED='No IP change detected for'
+
+echo "started $0"
+
+if [[ ! -f "${FREEDNS_CONF}" ]]; then
+    echo "Error: ${FREEDNS_CONF} does not exist"
+    exit 1    
+fi
+
+MYIP=$(dig +short "${RESOLVER_URL}" @"${RESOLVER_SERVER}")
+MYIP_EXITCODE=$?
+
+if [[ MYIP_EXITCODE -ne 0 ]]; then
+    echo "Error: MYIP_EXITCODE=[${MYIP_EXITCODE}], MYIP=[${MYIP}]"
+    exit 1
+fi
+
+if [ -z "$MYIP" ]; then
+    echo "Error: No response from ${RESOLVER_URL}"
+    exit 1
+fi
+
+while IFS=" " read -r domain token; do
+    STATUS="Error"
+    MESSAGE=""
+
+    #ignore comments
+    if [[ "$domain" == *"#"* ]]; then
+        continue
+
+    # ignore empty lines
+    elif [ -z "$domain" ]; then
+        continue
+
+    # eror if incomplete line found
+    elif [ -z "$token" ]; then
+        MESSAGE="token empty"
+
+    else
+        OLDIP=$(dig +short "${domain}" @"${RESOLVER_SERVER}")
+        OLDIP_EXITCODE=$?
+
+        if [[ OLDIP_EXITCODE -ne 0 ]]; then
+            EXIT_STATUS=1
+            MESSAGE="OLDIP_EXITCODE=[${OLDIP_EXITCODE}], OLDIP=[${OLDIP}]"
+
+        elif [[ "$MYIP" == "$OLDIP" ]]; then
+            STATUS="Unchanged"
+            MESSAGE="MYIP=[${MYIP}], OLDIP=[${OLDIP}]"
+
+        else
+            FREEDNS_RETURN=$(curl -s "${FREEDNS_URL}${token}")
+            FREEDNS_EXITCODE=$?
+
+            if [[ FREEDNS_EXITCODE -eq 0 ]]; then
+                # test for updated?
+                if [[ "$FREEDNS_RETURN" == "$DNS_UPDATED"* ]]; then
+                    STATUS="Updated"
+
+                # test for unchanged?
+                elif [[ "$FREEDNS_RETURN" == "$DNS_UNCHANGED"* ]]; then
+                    STATUS="Unchanged"
+                fi
+            else
+                EXIT_STATUS=1
+            fi
+            MESSAGE="FREEDNS_EXITCODE=[${FREEDNS_EXITCODE}], FREEDNS_RETURN=[${FREEDNS_RETURN}]"
+
+        fi
+    fi
+    echo "${STATUS}: domain=[${domain}], token=[${token}], ${MESSAGE}"
+done <"$FREEDNS_CONF"
+
+echo "finished $0"
+exit 0

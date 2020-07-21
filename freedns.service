@@ -1,5 +1,5 @@
 [Unit]
-Description=free_dns
+Description=freedns
 After=local-fs.target network.target network-online.target
 Wants=network-online.target
 
@@ -9,7 +9,7 @@ Type=simple
 StandardOutput=syslog
 StandardError=syslog
 Restart=no
-ExecStart=/usr/local/sbin/free_dns
+ExecStart=/usr/local/bin/freedns
 
 [Install]
-WantedBy=free_dns.timer
+WantedBy=freedns.timer
