@@ -64,7 +64,7 @@ while IFS=" " read -r domain token; do
             MESSAGE="MYIP=[${MYIP}], OLDIP=[${OLDIP}]"
 
         else
-            FREEDNS_RETURN=$(curl -s "${FREEDNS_URL}${token}")
+            FREEDNS_RETURN=$(curl -s "${FREEDNS_URL}${token}/")
             FREEDNS_EXITCODE=$?
 
             if [[ FREEDNS_EXITCODE -eq 0 ]]; then
