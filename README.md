@@ -1,16 +1,12 @@
 # FreeDns
 
-Shell script using Systemd for updating your domains at [FreeDNS](http://freedns.afraid.org). Uses [OpenDNS](https://opendns.com/) to resolve the external IP address and your domain IP addresses. Only updates afraid.org when the IP addresses do not match.
+Shell script using Systemd for updating your domains at [FreeDNS](http://freedns.afraid.org)
 
 ## References
 
 [FreeDNS](https://freedns.afraid.org/)
 
-[OpenDNS](https://opendns.com/)
-
-
 ## Requirements
-        Dig
         Curl
 
 ## Install
