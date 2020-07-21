@@ -43,9 +43,11 @@ while IFS=" " read -r domain token; do
     if [[ "$domain" == *"#"* ]]; then
         continue
 
+    # ignore empty lines
     elif [ -z "$domain" ]; then
-        MESSAGE="Domain empty"
+        continue
 
+    # eror if incomplete line found
     elif [ -z "$token" ]; then
         MESSAGE="token empty"
 
