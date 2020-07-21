@@ -6,8 +6,6 @@
 #   "Error 404 : Page not found"
 #   "Couldn't find any matching DNS records via randomkey method!"
 
-EXIT_STATUS=0
-
 FREEDNS_CONF="/etc/freedns/freedns.conf"
 FREEDNS_URL="http://sync.afraid.org/u/"
 
@@ -17,68 +15,74 @@ RESOLVER_SERVER="resolver1.opendns.com"
 DNS_UPDATED='Updated'
 DNS_UNCHANGED='No IP change detected for'
 
+echo "started $0"
+
+if [[ ! -f "${FREEDNS_CONF}" ]]; then
+    echo "Error: ${FREEDNS_CONF} does not exist"
+    exit 1    
+fi
+
 MYIP=$(dig +short "${RESOLVER_URL}" @"${RESOLVER_SERVER}")
 MYIP_EXITCODE=$?
 
 if [[ MYIP_EXITCODE -ne 0 ]]; then
-    EXIT_STATUS=1
     echo "Error: MYIP_EXITCODE=[${MYIP_EXITCODE}], MYIP=[${MYIP}]"
-else
+    exit 1
+fi
 
-    if [ -z "$MYIP" ]; then
-        EXIT_STATUS=1
-        echo "Error: No response from ${RESOLVER_URL}"
+if [ -z "$MYIP" ]; then
+    echo "Error: No response from ${RESOLVER_URL}"
+    exit 1
+fi
+
+while IFS=" " read -r domain token; do
+    STATUS="Error"
+    MESSAGE=""
+
+    #ignore comments
+    if [[ "$domain" == *"#"* ]]; then
+        continue
+
+    elif [ -z "$domain" ]; then
+        MESSAGE="Domain empty"
+
+    elif [ -z "$token" ]; then
+        MESSAGE="token empty"
 
     else
-        while IFS=" " read -r domain token; do
-            STATUS="Error"
-            MESSAGE=""
+        OLDIP=$(dig +short "${domain}" @"${RESOLVER_SERVER}")
+        OLDIP_EXITCODE=$?
 
-            #ignore comments
-            if [[ "$domain" == *"#"* ]]; then
-                continue
+        if [[ OLDIP_EXITCODE -ne 0 ]]; then
+            EXIT_STATUS=1
+            MESSAGE="OLDIP_EXITCODE=[${OLDIP_EXITCODE}], OLDIP=[${OLDIP}]"
 
-            elif [ -z "$domain" ]; then
-                MESSAGE="Domain empty"
+        elif [[ "$MYIP" == "$OLDIP" ]]; then
+            STATUS="Unchanged"
+            MESSAGE="MYIP=[${MYIP}], OLDIP=[${OLDIP}]"
 
-            elif [ -z "$token" ]; then
-                MESSAGE="token empty"
+        else
+            FREEDNS_RETURN=$(curl -s "${FREEDNS_URL}${token}")
+            FREEDNS_EXITCODE=$?
 
-            else
-                OLDIP=$(dig +short "${domain}" @"${RESOLVER_SERVER}")
-                OLDIP_EXITCODE=$?
+            if [[ FREEDNS_EXITCODE -eq 0 ]]; then
+                # test for updated?
+                if [[ "$FREEDNS_RETURN" == "$DNS_UPDATED"* ]]; then
+                    STATUS="Updated"
 
-                if [[ OLDIP_EXITCODE -ne 0 ]]; then
-                    EXIT_STATUS=1
-                    MESSAGE="OLDIP_EXITCODE=[${OLDIP_EXITCODE}], OLDIP=[${OLDIP}]"
-
-                elif [[ "$MYIP" == "$OLDIP" ]]; then
+                # test for unchanged?
+                elif [[ "$FREEDNS_RETURN" == "$DNS_UNCHANGED"* ]]; then
                     STATUS="Unchanged"
-                    MESSAGE="MYIP=[${MYIP}], OLDIP=[${OLDIP}]"
-
-                else
-                    FREEDNS_RETURN=$(curl -s "${FREEDNS_URL}${token}")
-                    FREEDNS_EXITCODE=$?
-
-                    if [[ FREEDNS_EXITCODE -eq 0 ]]; then
-                        # test for updated?
-                        if [[ "$FREEDNS_RETURN" == "$DNS_UPDATED"* ]]; then
-                            STATUS="Updated"
-
-                        # test for unchanged?
-                        elif [[ "$FREEDNS_RETURN" == "$DNS_UNCHANGED"* ]]; then
-                            STATUS="Unchanged"
-                        fi
-                    else
-                        EXIT_STATUS=1
-                    fi
-                    MESSAGE="FREEDNS_EXITCODE=[${FREEDNS_EXITCODE}], FREEDNS_RETURN=[${FREEDNS_RETURN}]"
-
                 fi
+            else
+                EXIT_STATUS=1
             fi
-            echo "${STATUS}: domain=[${domain}], token=[${token}], ${MESSAGE}"
-        done <"$FREEDNS_CONF"
-    fi
-fi
-exit $EXIT_STATUS
+            MESSAGE="FREEDNS_EXITCODE=[${FREEDNS_EXITCODE}], FREEDNS_RETURN=[${FREEDNS_RETURN}]"
 
+        fi
+    fi
+    echo "${STATUS}: domain=[${domain}], token=[${token}], ${MESSAGE}"
+done <"$FREEDNS_CONF"
+
+echo "finished $0"
+exit 0
