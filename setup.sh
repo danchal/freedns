@@ -7,7 +7,7 @@ fi
 
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-SYSTEMD_UNIT="free_dns"
+SYSTEMD_UNIT="freedns"
 
 # do not clobber an existing config file
 cp -n ${SYSTEMD_UNIT}.conf /etc/

@@ -17,8 +17,8 @@ Shell script using Systemd for updating your domains at [FreeDNS](http://freedns
         $ sudo ./setup.sh
 
 ## Setup
-1. Edit the configuration file, /etc/free_dns.conf
+1. Edit the configuration file, /etc/freedns/freedns.conf
 
 2. Start the FreeDns Systemd timer
 
-        $ sudo systemctl restart free_dns.timer
+        $ sudo systemctl restart freedns.timer
