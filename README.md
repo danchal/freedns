@@ -1,4 +1,4 @@
-# FreeDns
+# FreeDNS
 
 Shell script using Systemd for updating your domains at [FreeDNS](http://freedns.afraid.org)
 
