@@ -1,12 +1,13 @@
 #!/bin/bash
 
 #example return messages from FreeDns
-#   Updated example.com to 11.11.11.111 in 0.022 seconds
-#   ERROR: Invalid update URL (2)
-#   ERROR: Address 11.11.11.111 has not changed.
+#   "Updated example.com to 11.11.11.111 in 0.193 seconds"
+#   "No IP change detected for example.com with IP 11.11.11.111, skipping update"
+#   "Error 404 : Page not found"
+#   "Couldn't find any matching DNS records via randomkey method!"
 
 FREEDNS_CONF="/etc/freedns/freedns.conf"
-FREEDNS_URL="https://freedns.afraid.org/dynamic/update.php"
+FREEDNS_URL="https://sync.afraid.org/u/"
 
 echo "started $0"
 
@@ -32,7 +33,7 @@ while IFS=" " read -r domain token; do
         MESSAGE="token empty"
 
     else
-        FREEDNS_RETURN=$(curl --insecure --silent "${FREEDNS_URL}?${token}")
+        FREEDNS_RETURN=$(curl --silent --insecure "${FREEDNS_URL}${token}/")
         FREEDNS_EXITCODE=$?
 
         if [[ FREEDNS_EXITCODE -eq 0 ]]; then
@@ -41,7 +42,7 @@ while IFS=" " read -r domain token; do
                     STATUS="Updated"
                     ;;
 
-                "ERROR: Address "*" has not changed.")
+                "No IP change detected"*)
                     STATUS="Unchanged"
                     ;;
             esac
